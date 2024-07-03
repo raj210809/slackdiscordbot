@@ -1,30 +1,35 @@
-import slack
 import os
 from pathlib import Path
-from flask import Flask
 from dotenv import load_dotenv
+from flask import Flask
 from slackeventsapi import SlackEventAdapter
+from slack_sdk import WebClient as SlackClient
+import discord
+import asyncio
+import threading
+import uvicorn
 
+# Load environment variables
 env_path = Path(".") / '.env'
 load_dotenv(dotenv_path=env_path)
 
-app= Flask(__name__)
 
-client = slack.WebClient(token=os.environ['SLACK_TOKEN'])
-slack_event_adapter = SlackEventAdapter(
-    os.environ['SIGNING_SECRET'], '/slack/events' , app)
+# Discord setup
+intents = discord.Intents.default()
+intents.messages = True
+intents.message_content = True
+bot = discord.Client(intents=intents)
 
-botid = client.api_call("auth.test")["user_id"]
+@bot.event
+async def on_ready():
+    print(f'We have logged in as {bot.user}')
 
-@slack_event_adapter.on('message')
-def message(payload):
-    event = payload.get('event' , {})
-    channel_id = event.get('channel')
-    user_id = event.get('user')
-    text = event.get('text')
-    if user_id != botid:
-        client.chat_postMessage(channel=channel_id , text=text)
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    if message.content.startswith('vibhu'):
+        await message.channel.send('vibhu randi h')
 
+bot.run(os.environ['DISCORD_TOKEN'])
