@@ -18,6 +18,7 @@ slack_event_adapter = SlackEventAdapter(slack_signing_secret, "/slack/events", a
 
 botid = slackclient.api_call("auth.test")["user_id"]
 
+
 def need_ai(text):
     bot_mentioned = f"<@{botid}>" in text
     command_present = "tellme" in text.lower()
@@ -25,9 +26,9 @@ def need_ai(text):
 
 
 def process_message(text, channel_id):
-    slackclient.chat_postMessage(
-        channel=channel_id, text=text
-    )  # assign properly ratherthan sending to same channel
+    # slackclient.chat_postMessage(
+    #     channel=channel_id, text=text
+    # )  # assign properly ratherthan sending to same channel
     if need_ai(text):
         response = generate_response(text)
         slackclient.chat_postMessage(channel=channel_id, text=response)

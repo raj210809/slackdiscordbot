@@ -9,8 +9,13 @@ def generate_response(user_text):
     load_dotenv(dotenv_path=env_path)
     openai.api_key = os.environ["OPENAI_API_KEY"]
     try:
-        response = openai.Completion.create(
-            engine="text-davinci-003", prompt=user_text, max_tokens=150
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",  # latest free model.
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": user_text},
+            ],
+            max_tokens=150,
         )
         reply_text = response["choices"][0]["text"].strip()
 
