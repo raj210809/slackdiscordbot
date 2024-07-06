@@ -4,7 +4,7 @@ from pathlib import Path
 from flask import Flask
 from slackeventsapi import SlackEventAdapter
 from dotenv import load_dotenv
-from slackbot_genAI import generate_response
+from slackbot_gpt2 import generate_response
 
 # Load environment variables
 env_path = Path(".") / ".env"
@@ -41,6 +41,9 @@ def message(payload):
     user_id = event.get("user")
     text = event.get("text")
     if user_id != botid:
+        print(
+            f"Processing message: {text} from user: {user_id} in channel: {channel_id}"
+        )
         process_message(text, channel_id)
     print(f"Received message: {text} from user: {user_id} in channel: {channel_id}")
 
