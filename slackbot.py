@@ -1,5 +1,6 @@
 import requests
-import os, slack
+import os
+import slack
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from pathlib import Path
@@ -31,7 +32,6 @@ def get_channel_name(channel_id):
         print(f"Error fetching channel name: {e.response['error']}")
     return None
 
-
 def get_username(user_id):
     try:
         response = slackclient.users_info(user=user_id)
@@ -41,19 +41,12 @@ def get_username(user_id):
         print(f"Error fetching username: {e.response['error']}")
     return None
 
-
 def need_ai(text):
-    bot_mentioned = f"<@{botid}>" in text
-    command_present = "tellme" in text.lower()
-    return bot_mentioned and command_present
+    return text.lower().startswith("tellme")
 
-
-def process_message(text, channel_id):
-    # slackclient.chat_postMessage(
-    #     channel=channel_id, text=text
-    # )  # assign properly ratherthan sending to same channel
+async def process_message(text, channel_id):
     if need_ai(text):
-        response = generate_response(text)
+        response = await generate_response(text)
         slackclient.chat_postMessage(channel=channel_id, text=response)
 
 
@@ -114,3 +107,4 @@ def publishmessage():
 
 if __name__ == "__main__":
     app.run(port=3000, debug=True)
+f
