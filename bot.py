@@ -17,18 +17,19 @@ intents.messages = True
 intents.message_content = True
 bot = discord.Client(intents=intents)
 
-channel_id = None  # This will store the channel ID after on_ready event
+async def get_or_create_channel(channel_name):
+    for guild in bot.guilds:
+        for channel in guild.text_channels:
+            if channel.name == channel_name:
+                return channel
+    
+    for guild in bot.guilds:
+        new_channel = await guild.create_text_channel(channel_name)
+        return new_channel
 
 @bot.event
 async def on_ready():
-    global channel_id
     print(f'We have logged in as {bot.user}')
-    for guild in bot.guilds:
-        for channel in guild.text_channels:
-            if channel.name == 'general':  # Replace with your desired channel name
-                channel_id = channel.id
-                print(f'Channel found: {channel.name} (ID: {channel.id})')
-                break
 
 @bot.event
 async def on_message(message):
@@ -39,27 +40,31 @@ async def on_message(message):
         await message.channel.send('vibhu randi h')
     requests.post('http://localhost:3000/discord_message', json={'content': message.content})
 
-def send_message_to_discord(content, message_id):
-    if channel_id:
-        channel = bot.get_channel(channel_id)
-        print(channel)
-        if channel:
-            asyncio.run_coroutine_threadsafe(channel.send(f'{content} (discord:{message_id})'), bot.loop)
+async def send_message_to_discord(content, channel, user):
+    await channel.send(f'{user} : {content}')
 
 app2 = Flask(__name__)
 
 @app2.route('/slack_message', methods=['POST'])
 def handle_slack_message():
     data = request.json
+    print(data)
     message_content = data.get('content')
-    if message_content:
-        send_message_to_discord(message_content, message_id)
+    channel_name = data.get('channel')
+    username = data.get('user')
+    
+    # Use a future to get the result from the async function
+    future = asyncio.run_coroutine_threadsafe(get_or_create_channel(channel_name), bot.loop)
+    channel = future.result()
+
+    if message_content and channel:
+        asyncio.run_coroutine_threadsafe(send_message_to_discord(message_content, channel, username), bot.loop)
         return jsonify({'status': 'Message sent'}), 200
     else:
-        return jsonify({'error': 'No content to send'}), 400
+        return jsonify({'error': 'No content to send or channel not found'}), 400
 
 def run_flask():
-    app2.run(port=5000, debug=True, use_reloader=False)  # Disable reloader
+    app2.run(port=5000, debug=True, use_reloader=False)
 
 if __name__ == "__main__":
     flask_thread = Thread(target=run_flask)

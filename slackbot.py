@@ -20,6 +20,23 @@ slack_event_adapter = SlackEventAdapter(slack_signing_secret, "/slack/events", a
 
 botid = slackclient.api_call("auth.test")["user_id"]
 
+def get_channel_name(channel_id):
+    try:
+        response = slackclient.conversations_info(channel=channel_id)
+        if response["ok"]:
+            return response["channel"]["name"]
+    except SlackApiError as e:
+        print(f"Error fetching channel name: {e.response['error']}")
+    return None
+def get_username(user_id):
+    try:
+        response = slackclient.users_info(user=user_id)
+        if response["ok"]:
+            return response["user"]["name"]
+    except SlackApiError as e:
+        print(f"Error fetching username: {e.response['error']}")
+    return None
+
 
 def need_ai(text):
     bot_mentioned = f"<@{botid}>" in text
@@ -42,17 +59,18 @@ def message(payload):
     channel_id = event.get('channel')
     user_id = event.get('user')
     text = event.get('text')
+    channel_name = get_channel_name(channel_id)
+    username = get_username(user_id)
 
     if user_id != botid:
         try:
-            response = requests.post('http://localhost:5000/slack_message', json={'content': text})
+            response = requests.post('http://localhost:5000/slack_message', json={'content': text,'user':username,'channel':channel_name})
             if response.status_code == 200:
                 print("Message forwarded to local server")
             else:
                 print(f"Failed to forward message: {response.status_code} - {response.text}")
         except requests.exceptions.RequestException as e:
             print(f"Request exception: {e}")
-        process_message(text, channel_id)
 
 @app.route('/discord_message' , methods=['POST'])
 def publishmessage():

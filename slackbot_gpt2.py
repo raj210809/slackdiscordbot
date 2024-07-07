@@ -15,7 +15,3 @@ def generate_response(user_text):
     except Exception as e:
         print(f"Error generating response: {e}")
         return "Sorry, I couldn't generate any response."
-
-
-# sample test
-print(hf.invoke("What is geological capital of India?"))
