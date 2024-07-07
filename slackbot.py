@@ -62,15 +62,16 @@ def message(payload):
     channel_name = get_channel_name(channel_id)
     username = get_username(user_id)
 
-    if user_id != botid:
-        try:
-            response = requests.post('http://localhost:5000/slack_message', json={'content': text,'user':username,'channel':channel_name})
-            if response.status_code == 200:
-                print("Message forwarded to local server")
-            else:
-                print(f"Failed to forward message: {response.status_code} - {response.text}")
-        except requests.exceptions.RequestException as e:
-            print(f"Request exception: {e}")
+    try:
+        response = requests.post('http://localhost:5000/slack_message', json={'content': text,'user':username,'channel':channel_name})
+        if response.status_code == 200:
+            print("Message forwarded to local server")
+        else:
+            print(f"Failed to forward message: {response.status_code} - {response.text}")
+
+        process_message(text, channel_id)
+    except requests.exceptions.RequestException as e:
+        print(f"Request exception: {e}")
 
 @app.route('/discord_message' , methods=['POST'])
 def publishmessage():
