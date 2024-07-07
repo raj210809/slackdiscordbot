@@ -1,7 +1,8 @@
-import os
-import slack
+import os, slack
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from pathlib import Path
-from flask import Flask
+from flask import Flask, request , jsonify
 from slackeventsapi import SlackEventAdapter
 from dotenv import load_dotenv
 from slackbot_gpt2 import generate_response
@@ -36,17 +37,31 @@ def process_message(text, channel_id):
 
 @slack_event_adapter.on("message")
 def message(payload):
-    event = payload.get("event", {})
-    channel_id = event.get("channel")
-    user_id = event.get("user")
-    text = event.get("text")
+    event = payload.get('event', {})
+    channel_id = event.get('channel')
+    user_id = event.get('user')
+    text = event.get('text')
+
     if user_id != botid:
         print(
             f"Processing message: {text} from user: {user_id} in channel: {channel_id}"
         )
+        try:
+            response = requests.post('http://localhost:5000/slack_message', json={'content': text})
+            if response.status_code == 200:
+                print("Message forwarded to local server")
+            else:
+                print(f"Failed to forward message: {response.status_code} - {response.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"Request exception: {e}")
         process_message(text, channel_id)
-    print(f"Received message: {text} from user: {user_id} in channel: {channel_id}")
 
+@app.route('/discord_message' , methods=['POST'])
+def publishmessage():
+    data = request.json
+    content = data.get('content')
+    slackclient.chat_postMessage(channel='#slackbo' , text=content)
+    return jsonify({'status': 'Message sent'}), 200
 
 if __name__ == "__main__":
     app.run(port=3000, debug=True)
