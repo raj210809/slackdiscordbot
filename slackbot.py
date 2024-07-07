@@ -1,11 +1,12 @@
-import os
+import requests
+import os, slack
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from pathlib import Path
 from flask import Flask, request , jsonify
 from slackeventsapi import SlackEventAdapter
 from dotenv import load_dotenv
-from slackbot_genAI import generate_response
+from slackbot_gpt2 import generate_response
 
 # Load environment variables
 env_path = Path(".") / ".env"
@@ -51,6 +52,7 @@ def message(payload):
                 print(f"Failed to forward message: {response.status_code} - {response.text}")
         except requests.exceptions.RequestException as e:
             print(f"Request exception: {e}")
+        process_message(text, channel_id)
 
 @app.route('/discord_message' , methods=['POST'])
 def publishmessage():
