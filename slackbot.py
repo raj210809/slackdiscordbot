@@ -73,7 +73,9 @@ def message(payload):
 def publishmessage():
     data = request.json
     content = data.get('content')
-    slackclient.chat_postMessage(channel='#slackbo', text=content)
+    user = data.get('user')
+    channel = data.get('channel')
+    slackclient.chat_postMessage(channel=f"#{channel}", text=f"{user}:{content}")
     return jsonify({'status': 'Message sent'}), 200
 
 if __name__ == "__main__":

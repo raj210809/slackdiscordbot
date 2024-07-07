@@ -9,7 +9,7 @@ hf = HuggingFacePipeline(pipeline=pipe)
 
 async def generate_response(user_text):
     try:
-        return hf.invoke(f"Q: {user_text}\nA: Let's think step by step.")
+        return hf.invoke(f"Q: {user_text[7:]}\nA: Let's think step by step.")
     except Exception as e:
         print(f"Error generating response: {e}")
         return "Sorry, I couldn't generate any response."
