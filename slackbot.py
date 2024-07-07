@@ -1,3 +1,4 @@
+import requests
 import os, slack
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -43,9 +44,6 @@ def message(payload):
     text = event.get('text')
 
     if user_id != botid:
-        print(
-            f"Processing message: {text} from user: {user_id} in channel: {channel_id}"
-        )
         try:
             response = requests.post('http://localhost:5000/slack_message', json={'content': text})
             if response.status_code == 200:
