@@ -6,7 +6,7 @@ from pathlib import Path
 from flask import Flask, request, jsonify
 from slackeventsapi import SlackEventAdapter
 from dotenv import load_dotenv
-from slackbot_gpt2 import generate_response
+from slackbot_gpt2_2 import generate_response
 from slack_backup import mybackup, prev_log, retrieve
 
 # Load environment variables
@@ -21,6 +21,7 @@ slack_event_adapter = SlackEventAdapter(slack_signing_secret, "/slack/events", a
 
 botid = slackclient.api_call("auth.test")["user_id"]
 
+prev_client_id=''
 
 def get_channel_name(channel_id):
     try:
@@ -55,6 +56,7 @@ def process_message(text, channel_id):
     if need_ai(text):
         response = generate_response(text)
         slackclient.chat_postMessage(channel=channel_id, text=response)
+        print(f"posted the response at channel id: {channel_id}")
 
 
 def post(timestamp, channel_id, user_id, text, username, channel_name):
@@ -81,6 +83,13 @@ def post(timestamp, channel_id, user_id, text, username, channel_name):
 @slack_event_adapter.on("message")
 def message(payload):
     event = payload.get("event", {})
+    client_id = event.get("client_msg_id")
+
+    if client_id == prev_client_id:
+        return jsonify({"status": "ignored"}), 200
+    else:
+        prev_client_id=client_id
+
     channel_id = event.get("channel")
     user_id = event.get("user")
     text = event.get("text")
@@ -104,13 +113,15 @@ def message(payload):
     post(timestamp, channel_id, user_id, text, username, channel_name)
 
 
-@app.route("/discord_message", methods=["POST"])
-def publishmessage():
-    data = request.json
-    content = data.get("content")
-    slackclient.chat_postMessage(channel="#slackbo", text=content)
-    return jsonify({"status": "Message sent"}), 200
+# @app.route("/discord_message", methods=["POST"])
+# def publishmessage():
+#     data = request.json
+#     content = data.get("content")
+#     slackclient.chat_postMessage(channel="#slackbo", text=content)
+#     return jsonify({"status": "Message sent"}), 200
 
 
 if __name__ == "__main__":
-    app.run(port=3000, debug=True)
+    #app.run(port=3000, debug=True)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=3000)
