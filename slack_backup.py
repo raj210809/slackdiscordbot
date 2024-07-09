@@ -1,32 +1,36 @@
-from collections import deque
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+import os
+import json
+from google.oauth2.credentials import Credentials
 
-backup_queue = deque()
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+CREDENTIALS_FILE = 'credentials.json'
+TOKEN_FILE = 'token.json'
 
+def authenticate_google_drive():
+    creds = None
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, 'r') as token_file:
+            creds = Credentials.from_authorized_user_info(json.load(token_file), SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open(TOKEN_FILE, 'w') as token_file:
+            token_file.write(creds.to_json())
+    return build('drive', 'v3', credentials=creds)
 
-def retrieve():
-    priority, item = backup_queue.get()
-    return item
-
-
-def prev_log():
-    if backup_queue.empty():
-        return 0
-    else:
-        return 1
-
-
-def mybackup(timestamp, channel_id, user_id, text, username, channelname):
-    item = {
-        "channel_id": channel_id,
-        "channel_name": channelname,
-        "user_id": user_id,
-        "user_name": username,
-        "timestamp": float(timestamp),
-        "text": text,
-    }
-
-    # Check if queue is empty or if the new item should be inserted at the front
-    if (not backup_queue) or item["timestamp"] < backup_queue[0]["timestamp"]:
-        backup_queue.appendleft(item)
-    else:
-        backup_queue.append(item)
+def upload_to_google_drive(filename):
+    service = authenticate_google_drive()
+    file_metadata = {'name': filename, 'mimeType': 'application/json'}
+    media = MediaFileUpload(filename, mimetype='application/json')
+    try:
+        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        print(f"Backup successful: {filename} - File ID: {file.get('id')}")
+    except Exception as e:
+        print(f"Error uploading to Google Drive: {e}")

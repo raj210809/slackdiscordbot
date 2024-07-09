@@ -7,11 +7,11 @@ from flask import Flask, request, jsonify
 from slackeventsapi import SlackEventAdapter
 from dotenv import load_dotenv
 from slackbot_googleai import generate_response
-from slack_backup import mybackup, prev_log, retrieve
 import asyncio
+from slack_backup import upload_to_google_drive
+from datetime import datetime
+import json
 
-
-# Load environment variables
 env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
 
@@ -44,11 +44,42 @@ def get_username(user_id):
         print(f"Error fetching username: {e.response['error']}")
     return None
 
+def fetch_channel_history(channel_id):
+    try:
+        result = slackclient.conversations_history(channel=channel_id)
+        return result['messages']
+    except SlackApiError as e:
+        print(f"Error fetching conversations: {e.response['error']}")
+        return None
+
+def upload():
+    messages = fetch_channel_history(CHANNEL_ID)
+    if messages:
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = f"chat_history_{timestamp}.json"
+        with open(filename, 'w') as file:
+            json.dump(messages, file)
+        upload_to_google_drive(filename)
+        os.remove(filename)
+
 
 def need_ai(text):
     bot_mentioned = f"<@{botid}>" in text
     command_present = "tellme" in text.lower()
     return bot_mentioned and command_present
+def is_backup_command(text):
+    bot_mentioned = f"<@{botid}>" in text
+    backup_command_present = "bot backup" in text.lower()
+    return bot_mentioned and backup_command_present
+def backup_channel_history(channel_id):
+    messages = fetch_channel_history(channel_id)
+    if messages:
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = f"chat_history_{timestamp}.json"
+        with open(filename, 'w') as file:
+            json.dump(messages, file)
+        upload_to_google_drive(filename)
+        os.remove(filename)
 
 
 async def process_message(text, channel_id):
@@ -72,7 +103,7 @@ def post(timestamp, channel_id, user_id, text, username, channel_name):
             )
             mybackup(timestamp, channel_id, user_id, text, username, channel_name)
 
-        process_message(text, channel_id)
+        # process_message(text, channel_id)
     except requests.exceptions.RequestException as e:
         print(f"Request exception: {e}")
         return 0
@@ -94,21 +125,10 @@ def message(payload):
     channel_name = get_channel_name(channel_id)
     username = get_username(user_id)
     timestamp = event.get("timestamp")
-
-    while prev_log():
-        myitem = retrieve()
-        if not post(
-            myitem["timestamp"],
-            myitem["channel_id"],
-            myitem["user_id"],
-            myitem["text"],
-            myitem["username"],
-            myitem["channel_name"],
-        ):
-            break
-
-    # post the message which just came.
-    post(timestamp, channel_id, user_id, text, username, channel_name)
+    if is_backup_command(text):
+        backup_channel_history(channel_id)
+    else:
+        post(timestamp, channel_id, user_id, text, username, channel_name)
 
 
 @app.route("/discord_message", methods=["POST"])
@@ -120,6 +140,4 @@ def publishmessage():
 
 
 if __name__ == "__main__":
-    # app.run(port=3000, debug=True)
-    from waitress import serve
-    serve(app, host="0.0.0.0", port=3000)
+    app.run(port=3000 , debug=True)
