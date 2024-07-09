@@ -8,6 +8,8 @@ from slackeventsapi import SlackEventAdapter
 from dotenv import load_dotenv
 from slackbot_googleai import generate_response
 from slack_backup import mybackup, prev_log, retrieve
+import asyncio
+
 
 # Load environment variables
 env_path = Path(".") / ".env"
@@ -49,13 +51,12 @@ def need_ai(text):
     return bot_mentioned and command_present
 
 
-def process_message(text, channel_id):
+async def process_message(text, channel_id):
     if need_ai(text):
-        response = generate_response(text)
+        response = await generate_response(text)
         slackclient.chat_postMessage(channel=channel_id, text=response)
-        print(f"posted the response at channel id: {channel_id}")
 
-
+        
 def post(timestamp, channel_id, user_id, text, username, channel_name):
     try:
         response = requests.post(
@@ -121,5 +122,4 @@ def publishmessage():
 if __name__ == "__main__":
     # app.run(port=3000, debug=True)
     from waitress import serve
-
     serve(app, host="0.0.0.0", port=3000)
