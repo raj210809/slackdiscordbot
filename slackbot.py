@@ -6,7 +6,7 @@ from pathlib import Path
 from flask import Flask, request, jsonify
 from slackeventsapi import SlackEventAdapter
 from dotenv import load_dotenv
-from slackbot_gpt2_2 import generate_response
+from slackbot_googleai import generate_response
 from slack_backup import mybackup, prev_log, retrieve
 
 # Load environment variables
@@ -50,9 +50,6 @@ def need_ai(text):
 
 
 def process_message(text, channel_id):
-    # slackclient.chat_postMessage(
-    #     channel=channel_id, text=text
-    # )  # assign properly ratherthan sending to same channel
     if need_ai(text):
         response = generate_response(text)
         slackclient.chat_postMessage(channel=channel_id, text=response)
@@ -88,7 +85,7 @@ def message(payload):
     if client_id == prev_client_id:
         return jsonify({"status": "ignored"}), 200
     else:
-        prev_client_id=client_id
+        prev_client_id = client_id
 
     channel_id = event.get("channel")
     user_id = event.get("user")
@@ -113,15 +110,16 @@ def message(payload):
     post(timestamp, channel_id, user_id, text, username, channel_name)
 
 
-# @app.route("/discord_message", methods=["POST"])
-# def publishmessage():
-#     data = request.json
-#     content = data.get("content")
-#     slackclient.chat_postMessage(channel="#slackbo", text=content)
-#     return jsonify({"status": "Message sent"}), 200
+@app.route("/discord_message", methods=["POST"])
+def publishmessage():
+    data = request.json
+    content = data.get("content")
+    slackclient.chat_postMessage(channel="#slackbo", text=content)
+    return jsonify({"status": "Message sent"}), 200
 
 
 if __name__ == "__main__":
-    #app.run(port=3000, debug=True)
+    # app.run(port=3000, debug=True)
     from waitress import serve
+
     serve(app, host="0.0.0.0", port=3000)
