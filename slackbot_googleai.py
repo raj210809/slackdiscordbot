@@ -10,7 +10,7 @@ model = genai.GenerativeModel(model_name="gemini-1.5-flash")
 
 def generate_response(user_text):
     try:
-        response = model.generate_content(user_text)
+        response =model.generate_content(user_text[7:])
         return response.text
     except Exception as e:
         print(f"Error generating response: {e}")

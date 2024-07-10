@@ -6,13 +6,12 @@ import requests
 import asyncio
 from threading import Thread
 from flask import Flask, request, jsonify
-from slackbot_gpt2 import generate_response
+from slackbot_googleai import generate_response
 
-# Load environment variables
+
 env_path = Path(".") / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# Discord setup
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
@@ -40,12 +39,9 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    if message.content.startswith('tellme'):
-        response = await generate_response(message.content)
+    if message.content.startswith('raptor'):
+        response = generate_response(message.content)
         await message.channel.send(response)
-    print(message.channel)
-    print(message.content)
-    print(message.author)
 
     requests.post(
         "http://localhost:3000/discord_message", json={"content": str(message.content) ,"user": str(message.author),"channel":str(message.channel)}
