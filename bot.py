@@ -62,7 +62,6 @@ def handle_slack_message():
     channel_name = data.get("channel")
     username = data.get("user")
 
-    # Use a future to get the result from the async function
     future = asyncio.run_coroutine_threadsafe(
         get_or_create_channel(channel_name), bot.loop
     )
