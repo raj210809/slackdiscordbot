@@ -94,7 +94,7 @@ def post(timestamp, channel_id, user_id, text, username, channel_name):
         if response.status_code == 200:
             print("Message forwarded to local server")
         else:
-            print(f"Failed to forward message: {response.status_code} - {response.text}")
+            print(f"Failed to forward the message: {response.status_code} - {response.text}")
         
         process_message(text=text , channel_id=channel_id)
     except requests.exceptions.RequestException as e:
